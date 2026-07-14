@@ -1,113 +1,107 @@
 import urllib.request
-import os
+import urllib.parse
 import re
-from urllib.parse import urljoin
+import os
 
-# 🎯 CONFIGURATION DE TEST MULTI-PAGES (Hacker News)
-PAGES_A_SURVEILLER = {
-    "HackerNews_Accueil": "https://news.ycombinator.com/",
-    "HackerNews_Nouveautes": "https://news.ycombinator.com/newest", 
-    "HackerNews_Questions": "https://news.ycombinator.com/ask"
-}
+# CONFIGURATION
+URL_FST = "https://fstg-marrakech.ac.ma/"  # L'adresse de la FSTG Marrakech
+URL_NTFY = "https://ntfy.sh/FSTG-Marrakech"
 
-URL_NOTIFICATION = "https://ntfy.sh/FSTG-Marrakech"
+FILE_TEXTE = "derniere_page_fst.txt"
+FILE_LIENS = "derniers_liens_fst.txt"
 
-FICHIER_TEXTE_SAUVEGARDE = "derniere_page.txt"
-FICHIER_LIENS_SAUVEGARDE = "derniers_liens.txt"
-
-def extraire_contenu_et_liens(html_content, base_url):
-    """Extrait le texte de la page ainsi que tous les liens"""
-    liens_bruts = re.findall(r'href=["\']([^"\']+)["\']', html_content)
-    liens_utiles = set()
+def extraire_annonces(html):
+    """
+    Extrait les textes et les liens des actualités/annonces du code HTML.
+    Adapte les sélecteurs selon la structure du site.
+    """
+    # Recherche des liens (href) et des textes associés dans le HTML
+    # Cette regex cherche des liens contenant souvent 'actualite', 'annonce' ou des éléments de liste
+    liens_trouves = re.findall(r'href="([^"]+)"[^>]*>([^<]+)</a>', html)
     
-    for lien in liens_bruts:
-        lien_complet = urljoin(base_url, lien)
-        if lien_complet.startswith("http") and "#" not in lien:
-            liens_utiles.add(lien_complet)
+    annonces = []
+    for href, texte in liens_trouves:
+        texte_propre = texte.strip()
+        # On filtre pour ne garder que les vrais textes d'actualités (pas les menus 'Accueil', etc.)
+        if len(texte_propre) > 15 and any(mot in href.lower() or mot in texte_propre.lower() for mot in ["actualite", "annonce", "communique", "note", "etudiant", "inscription"]):
+            # Reconstruire le lien complet si c'est un lien relatif
+            lien_complet = urllib.parse.urljoin(URL_FST, href)
+            annonces.append((texte_propre, lien_complet))
             
-    html_clean = re.sub(r'<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>', '', html_content)
-    html_clean = re.sub(r'<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>', '', html_clean)
-    texte = re.sub(r'<[^>]+>', ' ', html_clean)
-    texte_clean = " ".join(texte.split())
-    
-    return texte_clean, sorted(list(liens_utiles))
+    return annonces
 
 try:
-    texte_global_actuel = []
-    liens_globaux_actuels = set()
+    print(f"Connexion au site de la FST : {URL_FST}...")
+    headers_nav = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+    req_fst = urllib.request.Request(URL_FST, headers=headers_nav)
+    
+    with urllib.request.urlopen(req_fst, timeout=15) as response:
+        html_content = response.read().decode('utf-8', errors='ignore')
 
-    # 1. Parcours de chaque sous-page du site de test
-    for nom_page, url in PAGES_A_SURVEILLER.items():
-        print(f"Analyse de la sous-page : {nom_page} ({url})...")
-        try:
-            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-            with urllib.request.urlopen(req) as response:
-                html = response.read().decode('utf-8', errors='ignore')
-            
-            texte_page, liens_page = extraire_contenu_et_liens(html, url)
-            
-            # On regroupe tout le contenu de toutes les pages visitées
-            texte_global_actuel.append(f"--- PAGE: {nom_page} --- \n {texte_page}")
-            liens_globaux_actuels.update(liens_page)
-        except Exception as err_page:
-            print(f"Impossible d'accéder à la sous-page {nom_page}: {err_page}")
+    # Extraction des annonces actuelles
+    annonces_actuelles = extraire_annonces(html_content)
+    print(f"Annonces trouvées sur la page : {len(annonces_actuelles)}")
 
-    texte_final_actuel = "\n".join(texte_global_actuel)
-    liens_finals_actuels = sorted(list(liens_globaux_actuels))
+    # Création d'une empreinte texte simple pour détecter s'il y a un changement global
+    contenu_texte_actuel = "\n".join([f"{t} ({l})" for t, l in annonces_actuelles])
 
-    changement_detecte = False
-    message_notification = ""
-    lien_a_ouvrir = "https://news.ycombinator.com/"
+    # --- LOGIQUE DE COMPARAISON ---
+    
+    # 1. Premier lancement (Initialisation)
+    if not os.path.exists(FILE_TEXTE):
+        print("Première exécution : Enregistrement de l'état initial...")
+        with open(FILE_TEXTE, "w", encoding="utf-8") as f:
+            f.write(contenu_texte_actuel)
+        
+        # Notification d'initialisation
+        msg_init = "🚀 Initialisation réussie ! Le robot surveille désormais le site de la FSTG Marrakech."
+        req_ntfy = urllib.request.Request(
+            URL_NTFY, 
+            data=msg_init.encode("utf-8"), 
+            headers={"Title": "FSTG Monitor Activated", "Priority": "high", "Tags": "school,white_check_mark"},
+            method="POST"
+        )
+        urllib.request.urlopen(req_ntfy)
+        print("Notification d'initialisation envoyée.")
 
-    # 2 & 3. Vérification s'il y a des fichiers de sauvegarde
-    if not os.path.exists(FICHIER_LIENS_SAUVEGARDE) or not os.path.exists(FICHIER_TEXTE_SAUVEGARDE):
-        # 🚀 CAS 1 : C'est le tout premier lancement (Pas d'historique)
-        changement_detecte = True
-        message_notification = "🚀 Initialisation réussie ! Le moniteur commence la surveillance active de vos pages."
-        print("Première exécution : envoi de la notification d'initialisation et création des sauvegardes.")
+    # 2. Lancements suivants (Comparaison)
     else:
-        # 🔄 CAS 2 : Les fichiers existent déjà, on compare
-        with open(FICHIER_LIENS_SAUVEGARDE, "r", encoding="utf-8") as f:
-            anciens_liens = f.read().splitlines()
-        
-        nouveaux_liens = [l for l in liens_finals_actuels if l not in anciens_liens]
-        
-        if nouveaux_liens:
-            changement_detecte = True
-            message_notification = "🧪 Test : Nouveau lien détecté sur l'une des sous-pages !"
-            lien_a_ouvrir = nouveaux_liens[0]
-            print(f"Nouveau sous-lien trouvé : {lien_a_ouvrir}")
+        print("Comparaison avec l'état précédent...")
+        with open(FILE_TEXTE, "r", encoding="utf-8") as f:
+            ancien_contenu = f.read()
+
+        if contenu_texte_actuel != ancien_content:
+            print("Changement détecté !")
             
-        if not changement_detecte:
-            with open(FICHIER_TEXTE_SAUVEGARDE, "r", encoding="utf-8") as f:
-                ancien_texte = f.read()
-                
-            if texte_final_actuel != ancien_texte:
-                changement_detecte = True
-                message_notification = "🧪 Test : Modification de texte détectée sur l'une des sous-pages !"
-                lien_a_ouvrir = "https://news.ycombinator.com/"
+            # Trouver ce qui a changé (par exemple un nouveau lien)
+            anciens_liens = re.findall(r'\((https?://[^\)]+)\)', ancien_content)
+            nouveautes = []
+            
+            for texte, lien in annonces_actuelles:
+                if lien not in anciens_liens:
+                    nouveautes.append(f"📢 {texte}\n🔗 {lien}")
 
-    # 4. Envoi de l'alerte
-    if changement_detecte:
-        print(f"Notification envoyée : {message_notification}")
-        headers = {
-            "Title": "Test Multi-Pages",
-            "Priority": "high",
-            "Tags": "test_tube,arrows_counterclockwise",
-            "Click": lien_a_ouvrir
-        }
-        req_notif = urllib.request.Request(URL_NOTIFICATION, data=message_notification.encode("utf-8"), headers=headers, method="POST")
-        urllib.request.urlopen(req_notif)
-    else:
-        print("Aucun changement sur aucune des sous-pages.")
+            if nouveautes:
+                message_alerte = "🆕 Nouvelle annonce FST détectée !\n\n" + "\n\n".join(nouveautes)
+            else:
+                message_alerte = "📝 Une mise à jour ou modification a été faite sur la page d'accueil de la FST !"
 
-    # 5. Sauvegarde de l'état global
-    with open(FICHIER_TEXTE_SAUVEGARDE, "w", encoding="utf-8") as f:
-        f.write(texte_final_actuel)
-        
-    with open(FICHIER_LIENS_SAUVEGARDE, "w", encoding="utf-8") as f:
-        f.write("\n".join(liens_finals_actuels))
+            # Envoi de la notification
+            req_ntfy = urllib.request.Request(
+                URL_NTFY, 
+                data=message_alerte.encode("utf-8"), 
+                headers={"Title": "Alerte FST Marrakech !", "Priority": "urgent", "Tags": "warning,bell"},
+                method="POST"
+            )
+            urllib.request.urlopen(req_ntfy)
+            print("Notification d'alerte envoyée sur votre téléphone !")
+
+            # Sauvegarde du nouvel état
+            with open(FILE_TEXTE, "w", encoding="utf-8") as f:
+                f.write(contenu_texte_actuel)
+        else:
+            print("Aucun changement détecté sur le site de la FST.")
 
 except Exception as e:
-    print(f"Erreur globale : {e}")
+    print(f"Erreur rencontrée : {e}")
     raise e
