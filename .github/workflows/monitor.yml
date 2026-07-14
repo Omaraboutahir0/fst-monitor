@@ -1,15 +1,15 @@
 name: FST Monitor
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # Permet de le lancer manuellement à tout moment
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/15 * * * *" # ⏱️ S'exécute automatiquement toutes les 15 minutes (limite stable de GitHub)
 
 jobs:
   monitor:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # 🔑 TRÈS IMPORTANT : Autorise la sauvegarde des fichiers d'état
+      contents: write # 🔑 Autorise GitHub à enregistrer les fichiers de sauvegarde
 
     steps:
       - name: Checkout repository
@@ -19,8 +19,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      # Note : Pas besoin d'installer de dépendances externes car nous utilisons uniquement urllib !
 
       - name: Run monitor
         run: python monitor.py
