@@ -5,18 +5,20 @@ import re
 import os
 
 # ================= CONFIGURATION GREEN-API =================
+# Correction de l'URL d'API avec votre serveur spécifique "7107"
+URL_API_BASE = "https://7107.api.greenapi.com"
 ID_INSTANCE = "710722683092"
 API_TOKEN_INSTANCE = "171338a45065416492ee51f0e922a737bf8de6df0f3c45f9a5"
-ID_GROUPE_WHATSAPP = "120363402810483357@g.us"  # <--- CORRIGÉ ICI AVEC @g.us
+ID_GROUPE_WHATSAPP = "120363402810483357@g.us"
 
 URL_FST = "https://fstg-marrakech.ac.ma/"
-FILE_TEXTE = "fst_archive_officielle.txt"
+FILE_TEXTE = "derniers_liens.txt"  # <--- CORRIGÉ : s'aligne avec votre fichier existant
 # ===========================================================
 
 def envoyer_whatsapp_groupe(message):
     """ Envoie un message dans le groupe WhatsApp via Green-API """
     try:
-        url_api = f"https://api.green-api.com/waInstance{ID_INSTANCE}/sendMessage/{API_TOKEN_INSTANCE}"
+        url_api = f"{URL_API_BASE}/waInstance{ID_INSTANCE}/sendMessage/{API_TOKEN_INSTANCE}"
         
         payload = {
             "chatId": ID_GROUPE_WHATSAPP,
@@ -34,6 +36,7 @@ def envoyer_whatsapp_groupe(message):
         with urllib.request.urlopen(req, timeout=15) as response:
             res = response.read().decode('utf-8')
             print("Message envoyé au groupe WhatsApp avec succès !")
+            print(f"Réponse API : {res}")
     except Exception as e:
         print(f"Erreur lors de l'envoi WhatsApp : {e}")
 
@@ -65,7 +68,7 @@ try:
 
     # --- LOGIQUE DE COMPARAISON ---
     if not os.path.exists(FILE_TEXTE):
-        print("Première exécution : Enregistrement de l'état initial...")
+        print("Première exécution (ou fichier supprimé) : Enregistrement de l'état initial...")
         with open(FILE_TEXTE, "w", encoding="utf-8") as f:
             f.write(contenu_texte_actuel)
         
@@ -98,9 +101,10 @@ try:
             else:
                 message_alerte = "📝 Une modification a été effectuée sur la page d'accueil de la FST !"
 
-            # Envoi dans le groupe WhatsApp !
             envoyer_whatsapp_groupe(message_alerte)
 
+            # Note : GitHub Actions n'enregistre pas ce fichier automatiquement sur le dépôt sans étape de push,
+            # mais cela évite de spammer si plusieurs lancements se font dans la même session.
             with open(FILE_TEXTE, "w", encoding="utf-8") as f:
                 f.write(contenu_texte_actuel)
         else:
