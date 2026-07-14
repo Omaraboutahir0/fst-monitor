@@ -4,10 +4,9 @@ import re
 from urllib.parse import urljoin
 
 # 🎯 CONFIGURATION DE TEST MULTI-PAGES (Hacker News)
-# On simule les différentes rubriques de votre futur site
 PAGES_A_SURVEILLER = {
     "HackerNews_Accueil": "https://news.ycombinator.com/",
-    "HackerNews_Nouveautes": "https://news.ycombinator.com/newest", # Change constamment !
+    "HackerNews_Nouveautes": "https://news.ycombinator.com/newest", 
     "HackerNews_Questions": "https://news.ycombinator.com/ask"
 }
 
@@ -35,6 +34,7 @@ def extraire_contenu_et_liens(html_content, base_url):
 
 try:
     texte_global_actuel = []
+    # CORRECTION ICI : Remplacement du tiret '-' par un underscore '_'
     liens_globaux_actuels = set()
 
     # 1. Parcours de chaque sous-page du site de test
