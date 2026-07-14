@@ -7,9 +7,7 @@ import os
 # ================= CONFIGURATION GREEN-API =================
 ID_INSTANCE = "710722683092"
 API_TOKEN_INSTANCE = "171338a45065416492ee51f0e922a737bf8de6df0f3c45f9a5"
-
-# Remplacer cette ligne par l'ID de votre groupe trouvé dans l'onglet "Chats" de Green-API
-ID_GROUPE_WHATSAPP = "METTRE_ICI_L_ID_DU_GROUPE@g.us"
+ID_GROUPE_WHATSAPP = "120363402810483357@g.us"
 
 URL_FST = "https://fstg-marrakech.ac.ma/"
 FILE_TEXTE = "fst_archive_officielle.txt"
@@ -20,7 +18,6 @@ def envoyer_whatsapp_groupe(message):
     try:
         url_api = f"https://api.green-api.com/waInstance{ID_INSTANCE}/sendMessage/{API_TOKEN_INSTANCE}"
         
-        # Préparation des données au format JSON requis par Green-API
         payload = {
             "chatId": ID_GROUPE_WHATSAPP,
             "message": message
@@ -72,8 +69,14 @@ try:
         with open(FILE_TEXTE, "w", encoding="utf-8") as f:
             f.write(contenu_texte_actuel)
         
-        # Message d'accueil dans le groupe
-        msg_init = "🚀 *Robot de Surveillance FSTG Activé !*\n\nCe groupe diffusera désormais automatiquement toutes les nouvelles annonces publiées sur le site officiel de la FST de Marrakech."
+        # Message de présentation officiel et stylisé
+        msg_init = (
+            "🎓 *Bot FSTG Marrakech*\n\n"
+            "Bonjour à tous ! 👋\n\n"
+            "Je suis le *Robot d'Annonces Officiel* de la FSTG Marrakech. 🤖🏫\n\n"
+            "👉 *Mon rôle :* Je surveille le site de la faculté 24h/24. Dès qu'un professeur ou l'administration publie une nouvelle annonce, un emploi du temps ou un communiqué important, je vous l'envoie instantanément ici avec son lien direct !\n\n"
+            "Restez connectés, vous ne raterez plus aucune information importante ! 🚀"
+        )
         envoyer_whatsapp_groupe(msg_init)
 
     else:
