@@ -59,8 +59,14 @@ try:
     message_notification = ""
     lien_a_ouvrir = "https://news.ycombinator.com/"
 
-    # 2. Vérification s'il y a des nouveaux sous-liens/articles
-    if os.path.exists(FICHIER_LIENS_SAUVEGARDE):
+    # 2 & 3. Vérification s'il y a des fichiers de sauvegarde
+    if not os.path.exists(FICHIER_LIENS_SAUVEGARDE) or not os.path.exists(FICHIER_TEXTE_SAUVEGARDE):
+        # 🚀 CAS 1 : C'est le tout premier lancement (Pas d'historique)
+        changement_detecte = True
+        message_notification = "🚀 Initialisation réussie ! Le moniteur commence la surveillance active de vos pages."
+        print("Première exécution : envoi de la notification d'initialisation et création des sauvegardes.")
+    else:
+        # 🔄 CAS 2 : Les fichiers existent déjà, on compare
         with open(FICHIER_LIENS_SAUVEGARDE, "r", encoding="utf-8") as f:
             anciens_liens = f.read().splitlines()
         
@@ -71,20 +77,19 @@ try:
             message_notification = "🧪 Test : Nouveau lien détecté sur l'une des sous-pages !"
             lien_a_ouvrir = nouveaux_liens[0]
             print(f"Nouveau sous-lien trouvé : {lien_a_ouvrir}")
-    
-    # 3. Vérification s'il y a du nouveau texte sur les sous-pages
-    if not changement_detecte and os.path.exists(FICHIER_TEXTE_SAUVEGARDE):
-        with open(FICHIER_TEXTE_SAUVEGARDE, "r", encoding="utf-8") as f:
-            ancien_texte = f.read()
             
-        if texte_final_actuel != ancien_texte:
-            changement_detecte = True
-            message_notification = "🧪 Test : Modification de texte détectée sur l'une des sous-pages !"
-            lien_a_ouvrir = "https://news.ycombinator.com/"
+        if not changement_detecte:
+            with open(FICHIER_TEXTE_SAUVEGARDE, "r", encoding="utf-8") as f:
+                ancien_texte = f.read()
+                
+            if texte_final_actuel != ancien_texte:
+                changement_detecte = True
+                message_notification = "🧪 Test : Modification de texte détectée sur l'une des sous-pages !"
+                lien_a_ouvrir = "https://news.ycombinator.com/"
 
-    # 4. Envoi de l'alerte de test
+    # 4. Envoi de l'alerte
     if changement_detecte:
-        print(f"Changement détecté sur l'un des sous-liens ! Notification envoyée.")
+        print(f"Notification envoyée : {message_notification}")
         headers = {
             "Title": "Test Multi-Pages",
             "Priority": "high",
