@@ -8,6 +8,8 @@ on:
 jobs:
   monitor:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # 🔑 TRÈS IMPORTANT : Autorise la sauvegarde des fichiers d'état
 
     steps:
       - name: Checkout repository
@@ -18,10 +20,15 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      # Note : Pas besoin d'installer de dépendances externes car nous utilisons uniquement urllib !
 
       - name: Run monitor
         run: python monitor.py
+
+      - name: Commit and push changes (save state)
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add derniere_page.txt derniers_liens.txt || true
+          git commit -m "Mise à jour de l'état des pages [skip ci]" || true
+          git push || true
