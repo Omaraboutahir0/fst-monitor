@@ -7,7 +7,7 @@ import os
 # ================= CONFIGURATION GREEN-API =================
 ID_INSTANCE = "710722683092"
 API_TOKEN_INSTANCE = "171338a45065416492ee51f0e922a737bf8de6df0f3c45f9a5"
-ID_GROUPE_WHATSAPP = "120363402810483357@g.us"
+ID_GROUPE_WHATSAPP = "120363402810483357@g.us"  # <--- CORRIGÉ ICI AVEC @g.us
 
 URL_FST = "https://fstg-marrakech.ac.ma/"
 FILE_TEXTE = "fst_archive_officielle.txt"
