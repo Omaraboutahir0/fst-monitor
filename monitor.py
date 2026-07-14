@@ -34,7 +34,6 @@ def extraire_contenu_et_liens(html_content, base_url):
 
 try:
     texte_global_actuel = []
-    # CORRECTION ICI : Remplacement du tiret '-' par un underscore '_'
     liens_globaux_actuels = set()
 
     # 1. Parcours de chaque sous-page du site de test
