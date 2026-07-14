@@ -7,7 +7,8 @@ import os
 URL_FST = "https://fstg-marrakech.ac.ma/"  # L'adresse de la FSTG Marrakech
 URL_NTFY = "https://ntfy.sh/FSTG-Marrakech"
 
-FILE_TEXTE = "derniere_page_fst.txt"
+# Nouveau fichier de stockage unique pour forcer l'envoi immédiat du message d'initialisation
+FILE_TEXTE = "fst_archive_officielle.txt"
 
 def extraire_annonces(html):
     """
@@ -29,7 +30,7 @@ def extraire_annonces(html):
 try:
     print(f"Connexion au site de la FST : {URL_FST}...")
     
-    # En-têtes complets imitant un navigateur récent
+    # En-têtes complets imitant un navigateur récent pour éviter d'être bloqué
     headers_nav = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -57,7 +58,7 @@ try:
         with open(FILE_TEXTE, "w", encoding="utf-8") as f:
             f.write(contenu_texte_actuel)
         
-        # Notification d'initialisation
+        # Notification d'initialisation instantanée
         msg_init = "🚀 Initialisation réussie ! Le robot surveille désormais le site de la FSTG Marrakech."
         req_ntfy = urllib.request.Request(
             URL_NTFY, 
@@ -108,4 +109,4 @@ try:
 
 except Exception as e:
     # On évite de faire planter brutalement GitHub Actions, on affiche juste l'erreur
-    print(f"Erreur de connexion (Serveur FST peut-être surchargé) : {e}")
+    print(f"Erreur de connexion (Le serveur FSTG rencontre des difficultés) : {e}")
